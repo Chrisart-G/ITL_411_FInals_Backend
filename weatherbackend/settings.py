@@ -3,7 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()  # loads .env in project root
-
+OWM_API_KEY = os.environ.get("OWM_API_KEY")
+CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN")
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")

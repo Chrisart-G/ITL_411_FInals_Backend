@@ -7,8 +7,8 @@ __pycache__/
 # Virtual environments
 venv/
 .venv/
-env/
-ENV/
+
+
 
 # Django stuff
 db.sqlite3
@@ -16,9 +16,7 @@ media/
 staticfiles/
 static/
 
-# Environment & secrets
-.env
-*.env
+
 
 # VS Code / IDE
 .vscode/
