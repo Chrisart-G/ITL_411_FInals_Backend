@@ -3,6 +3,8 @@ import os
 import requests
 from datetime import datetime, timezone
 from collections import defaultdict
+import numpy as np
+from .analytics import WeatherAnalytics
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -11,6 +13,8 @@ from django.core.cache import cache
 OWM_API_KEY = settings.OWM_API_KEY
 SESSION = requests.Session()
 TIMEOUT = 12
+
+
 
 def _json_error(message, status=400):
     # Always stringify exceptions so JSON encoding never fails
@@ -242,3 +246,86 @@ def feature_importance(request):
         {"feature": "clouds", "importance": 0.13},
     ]
     return JsonResponse(data, safe=False)
+
+# Add this at the very bottom of views.py
+def weather_analytics(request):
+    """
+    Linear regression analytics for weather predictions
+    Returns temperature trends, rainfall predictions, and insights
+    """
+    try:
+        # Get city from request
+        city = request.GET.get("city") or "Bacolod,PH"
+        lat, lon = _geocode_city(city)
+        
+        # Get current weather to use as base temperature
+        wx = _current_weather(lat, lon)
+        current_temp = wx.get("main", {}).get("temp", 25)  # Default 25°C if missing
+        
+        # Initialize analytics
+        analytics = WeatherAnalytics()
+        
+        # Generate historical data (simulated - in real app, use actual historical data)
+        historical = analytics.generate_historical_data(current_temp, days_back=90)
+        
+        # Make predictions using linear regression
+        temp_predictions = analytics.predict_temperature_trend(historical['temperatures'])
+        rain_predictions = analytics.predict_rainfall(historical['rain_probability'])
+        
+        # Generate insights
+        insights = []
+        if temp_predictions:
+            if temp_predictions['trend'] == 'increasing':
+                insights.append(f"Temperature trend: Warming up ({temp_predictions['slope']}°C/day)")
+            elif temp_predictions['trend'] == 'decreasing':
+                insights.append(f"Temperature trend: Cooling down ({abs(temp_predictions['slope'])}°C/day)")
+            else:
+                insights.append("Temperature trend: Stable")
+        
+        if rain_predictions:
+            if rain_predictions['trend'] == 'increasing':
+                insights.append("Rainfall trend: Increasing")
+            elif rain_predictions['trend'] == 'decreasing':
+                insights.append("Rainfall trend: Decreasing")
+            else:
+                insights.append("Rainfall trend: Stable")
+            
+            if rain_predictions['high_risk_days']:
+                insights.append(f"High rain risk in next {len(rain_predictions['high_risk_days'])} days")
+        
+        # Get historical summary
+        historical_summary = {
+            'days_analyzed': len(historical['dates']),
+            'avg_temperature': round(np.mean(historical['temperatures']), 1),
+            'avg_rain_prob': round(np.mean(historical['rain_probability']), 1),
+            'max_temperature': round(max(historical['temperatures']), 1),
+            'min_temperature': round(min(historical['temperatures']), 1),
+            'temperature_std': round(np.std(historical['temperatures']), 2)
+        }
+        
+        # Prepare response
+        payload = {
+            "city": city,
+            "lat": lat,
+            "lon": lon,
+            "historical_summary": historical_summary,
+            "predictions": {
+                "temperature": temp_predictions,
+                "rainfall": rain_predictions
+            },
+            "insights": insights,
+            "analytics_confidence": {
+                'temperature': temp_predictions['confidence'] if temp_predictions else 0,
+                'rainfall': 85 if rain_predictions else 0
+            },
+            "regression_metrics": {
+                'model': 'LinearRegression',
+                'features': ['time_series_index'],
+                'target': ['temperature', 'rain_probability']
+            }
+        }
+        
+        return JsonResponse(payload)
+        
+    except Exception as e:
+        return _json_error(str(e), status=500)

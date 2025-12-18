@@ -10,4 +10,5 @@ urlpatterns = [
     path("analytics/timeseries", views.timeseries),
     path("analytics/forecast", views.forecast),
     path("analytics/feature-importance", views.feature_importance),
+    path('analytics/', views.weather_analytics, name='weather-analytics'),  # ADD THIS LINE
 ]
