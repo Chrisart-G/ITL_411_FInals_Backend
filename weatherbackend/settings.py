@@ -70,10 +70,20 @@ STATIC_URL = "static/"
 
 # ---- CORS ----
 CORS_ALLOWED_ORIGINS = [
-    os.environ.get("CORS_ALLOWED_ORIGIN", "http://localhost:5173")
-]
-CORS_ALLOW_CREDENTIALS = True
+    # Local dev (Vite)
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 
+    # Production frontend (Netlify)
+    "https://itl-411-weather-app.netlify.app",
+]
+
+# We are NOT sending cookies from the frontend, so keep this False
+CORS_ALLOW_CREDENTIALS = False
+CSRF_TRUSTED_ORIGINS = [
+    "https://itl-411-finals-backend.onrender.com",
+    "https://itl-411-weather-app.netlify.app",
+]
 # ---- Cache (simple, in-memory) ----
 CACHES = {
     "default": {
