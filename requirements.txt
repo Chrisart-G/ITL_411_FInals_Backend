@@ -1,5 +1,10 @@
-Django>=4.0,<5.0
+Django>=4.2,<5.0
 gunicorn
 python-dotenv
 django-cors-headers
 requests
+
+# analytics / math
+numpy
+pandas
+scikit-learn
